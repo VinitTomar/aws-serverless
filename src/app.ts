@@ -16,7 +16,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
         response = {
             statusCode: 200,
             body: JSON.stringify({
-                message: 'hello serverless',
+                message: 'hello serverless with lambda auth',
             }),
         };
     } catch (err) {
