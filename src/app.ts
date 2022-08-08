@@ -45,7 +45,7 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     response = {
       statusCode: 200,
       body: JSON.stringify({
-        message: 'Hello serverless with lambda authorizer',
+        message: 'Hello serverless with lambda authorizer (build by webpack)',
       }),
     };
   } catch (err) {

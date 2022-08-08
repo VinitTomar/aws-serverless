@@ -21,6 +21,7 @@ Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
+      CodeUri: dist/
       Handler: app.lambdaHandler
       Events:
         HelloWorld:
@@ -29,18 +30,11 @@ Resources:
             Path: /hello
             Method: get
             RestApiId: !Ref RestApiGateway
-    Metadata: # Manage esbuild properties
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - src/app.ts
 
   FormHanlderFunction:
     Type: AWS::Serverless::Function
     Properties:
+      CodeUri: dist/
       Handler: app.formHandler
       Events:
         GetForm:
@@ -53,14 +47,6 @@ Resources:
           Properties:
             Path: /form
             Method: post
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-         - src/app.ts
 
   RestApiGateway:
     Type: AWS::Serverless::Api
@@ -80,15 +66,8 @@ Resources:
   RestApiLambdaAuthorizer:
     Type: AWS::Serverless::Function
     Properties:
+      CodeUri: dist/
       Handler: auth.restApiAuthorizationHandler
-    Metadata:
-      BuildMethod: esbuild
-      BuildProperties:
-        Minify: true
-        Target: "es2020"
-        Sourcemap: true
-        EntryPoints:
-          - src/auth.ts
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
