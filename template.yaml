@@ -38,6 +38,30 @@ Resources:
         EntryPoints:
           - src/app.ts
 
+  FormHanlderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: app.formHandler
+      Events:
+        GetForm:
+          Type: Api
+          Properties:
+            Path: /form
+            Method: get
+        SubmitForm:
+          Type: Api
+          Properties:
+            Path: /form
+            Method: post
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: "es2020"
+        Sourcemap: true
+        EntryPoints:
+         - src/app.ts
+
   RestApiGateway:
     Type: AWS::Serverless::Api
     Properties:
