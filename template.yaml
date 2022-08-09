@@ -16,6 +16,10 @@ Parameters:
     Type: String
     Default: dev
     Description: Application environment
+    AllowedPattern: ^[A-Za-z]+$
+    MaxLength: 10
+    MinLength: 1
+    ConstraintDescription: "1-10 Latin letters"
 
 Resources:
   HelloWorldFunction:
@@ -51,6 +55,7 @@ Resources:
   RestApiGateway:
     Type: AWS::Serverless::Api
     Properties:
+      Name: ApiWithAuthorizer
       StageName: !Ref AppEnv
       Auth:
         ApiKeyRequired: false
@@ -58,7 +63,6 @@ Resources:
         Authorizers:
           RestApiAuthorizer:
             FunctionArn: !GetAtt RestApiLambdaAuthorizer.Arn
-            # FunctionInvokeRole: !GetAtt RestApiLambdaAuthorizerRole.Arn
             Identity:
               Headers:
                 - Authorization
