@@ -7,6 +7,9 @@ module.exports = {
     auth: './src/auth.ts',
   },
   target: 'node',
+  externals: {
+    'aws-sdk': 'aws-sdk'
+  },
   module: {
     rules: [
       {

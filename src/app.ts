@@ -1,5 +1,5 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-
+import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
+import { S3 } from 'aws-sdk';
 /**
  *
  * Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
@@ -82,6 +82,35 @@ export const formHandler = async (event: APIGatewayProxyEvent): Promise<APIGatew
   }
 
   return response;
+}
+
+export const processFormHandler = async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {
+  const s3 = new S3();
+  const bucketName = process.env.UPLOAD_S3_BUCKET;
+
+  if (bucketName) {
+    await s3.putObject({
+      Bucket: bucketName,
+      Key: context.awsRequestId,
+      Body: JSON.stringify(event)
+    }).promise();
+  }
+
+  const reply = `
+    <html>
+    <head>
+      <meta charset="utf-8"/>
+    </head>
+    <body>
+      <h1>Thanks</h1>
+      <p>We received your submission</p>
+      <p>Reference: ${context.awsRequestId}</p>
+      </p>
+    </body>
+    </html>
+  `;
+
+  return htmlResponse(reply);
 }
 
 function htmlResponse(html: string): APIGatewayProxyResult {

@@ -44,12 +44,25 @@ Resources:
         GetForm:
           Type: Api
           Properties:
-            Path: /form
+            Path: /user-form
             Method: get
+
+  ProcessFormHanlderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: app.processFormHandler
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref UploadS3Bucket
+      Environment:
+        Variables:
+          UPLOAD_S3_BUCKET: !Ref UploadS3Bucket
+      Events:
         SubmitForm:
           Type: Api
           Properties:
-            Path: /form
+            Path: /user-form
             Method: post
 
   RestApiGateway:
@@ -73,6 +86,9 @@ Resources:
       CodeUri: dist/
       Handler: auth.restApiAuthorizationHandler
 
+  UploadS3Bucket:
+    Type: AWS::S3::Bucket
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
@@ -86,3 +102,6 @@ Outputs:
   HelloWorldFunctionIamRole:
     Description: "Implicit IAM Role created for Hello World function"
     Value: !GetAtt HelloWorldFunctionRole.Arn
+  UploadBucket:
+    Description: "S3 Bucket for user information"
+    Value: !Ref UploadS3Bucket
