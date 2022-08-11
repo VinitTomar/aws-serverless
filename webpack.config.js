@@ -5,7 +5,8 @@ module.exports = {
   entry: {
     app: './src/app.ts',
     auth: './src/auth.ts',
-    'upload-file': './src/upload-file.ts'
+    'upload-file': './src/upload-file.ts',
+    'image-conversion': './src/image-conversion.ts'
   },
   target: 'node',
   externals: {

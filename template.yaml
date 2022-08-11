@@ -97,16 +97,29 @@ Resources:
       Handler: upload-file.confirmUploadHandler
       Environment:
         Variables:
-          UPLOAD_S3_BUCKET: !Ref UploadS3Bucket
+          UPLOAD_S3_BUCKET: !Ref ThumbnailsS3Bucket
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref UploadS3Bucket
+            BucketName: !Ref ThumbnailsS3Bucket
       Events:
         ConfirmUpload:
           Type: Api
           Properties:
             Path: /confirm
             Method: get
+
+  ImageConversionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: image-conversion.generateThumbnailHandler
+      Timeout: 600
+      Environment:
+        Variables:
+          OUTPUT_BUCKET: !Ref ThumbnailsS3Bucket
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref ThumbnailsS3Bucket
 
   RestApiGateway:
     Type: AWS::Serverless::Api
@@ -136,6 +149,29 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+
+  ThumbnailsS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  ConvertFunctionCanReadUploads:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ConvertFunctionCanReadUploads
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "s3:GetObject"
+            Resource:
+              - !Sub "${UploadS3Bucket.Arn}/*"
+      Roles:
+        - !Ref ImageConversionFunctionRole
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
