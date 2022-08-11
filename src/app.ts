@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
 import { S3 } from 'aws-sdk';
+import { htmlResponse } from './html-response';
 /**
  *
  * Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
@@ -113,12 +114,3 @@ export const processFormHandler = async (event: APIGatewayProxyEvent, context: C
   return htmlResponse(reply);
 }
 
-function htmlResponse(html: string): APIGatewayProxyResult {
-  return {
-    statusCode: 200,
-    body: html,
-    headers: {
-      'Content-Type': 'text/html'
-    }
-  }
-}
