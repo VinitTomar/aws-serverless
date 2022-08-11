@@ -26,6 +26,13 @@ Parameters:
     Description: Maximum upload size in megabytes
     MinValue: 1
     MaxValue: 100
+  ContactEmailAddress:
+    Type: String
+    Description: Email address for operational notifications
+    Default: "libat95252@ukgent.com"
+
+Conditions:
+  ContactEmailSet: !Not [!Equals ["", !Ref ContactEmailAddress]]
 
 Resources:
   HelloWorldFunction:
@@ -114,12 +121,21 @@ Resources:
       CodeUri: dist/
       Handler: image-conversion.generateThumbnailHandler
       Timeout: 600
+      Events:
+        FileUploaded:
+          Type: S3
+          Properties:
+            Bucket: !Ref UploadS3Bucket
+            Events: s3:ObjectCreated:*
       Environment:
         Variables:
           OUTPUT_BUCKET: !Ref ThumbnailsS3Bucket
       Policies:
         - S3FullAccessPolicy:
             BucketName: !Ref ThumbnailsS3Bucket
+      DeadLetterQueue:
+        TargetArn: !Ref NotifyAdmins
+        Type: SNS
 
   RestApiGateway:
     Type: AWS::Serverless::Api
@@ -172,6 +188,17 @@ Resources:
               - !Sub "${UploadS3Bucket.Arn}/*"
       Roles:
         - !Ref ImageConversionFunctionRole
+
+  NotifyAdmins:
+    Type: AWS::SNS::Topic
+
+  AlarmNotifyOpsSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: ContactEmailSet
+    Properties:
+      Endpoint: !Ref ContactEmailAddress
+      Protocol: email
+      TopicArn: !Ref NotifyAdmins
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function

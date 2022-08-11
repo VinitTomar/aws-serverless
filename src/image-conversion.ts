@@ -51,7 +51,7 @@ function uploadFileToS3(bucket: string, fileKey: string, filePath: string, conte
   return s3.upload({
     Bucket: bucket,
     Key: fileKey,
-    Body: createReadStream(fileKey),
+    Body: createReadStream(filePath),
     ACL: 'private',
     ContentType: contentType
   }).promise();
