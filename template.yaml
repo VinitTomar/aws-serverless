@@ -40,6 +40,18 @@ Parameters:
 Conditions:
   ContactEmailSet: !Not [!Equals ["", !Ref ContactEmailAddress]]
 
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: vin-image-thumbnail
+    Description: An app for generation thumbnails for images
+    Author: Vinit Tomar
+    SemanticVersion: 1.0.0
+    SpdxLicenceId: MIT
+    LicenceUrl: LICENSE.md
+    ReadmeUrl: README.md
+    Labels: ["layer", "image", "lambda", "imagemagick"]
+    HomePageUrl: https://github.com/VinitTomar
+
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
