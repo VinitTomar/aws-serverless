@@ -10,6 +10,13 @@ Globals:
   Function:
     Timeout: 3
     Runtime: nodejs14.x
+    ReservedConcurrentExecutions: 1
+  # Api:
+  #   MethodSettings:
+  #     - ResourcePath: "/*"
+  #       HttpMethod: "*"
+  #       ThrottlingBurstLimit: 4
+  #       ThrottlingRateLimit: 2
 
 Parameters:
   AppEnv:
@@ -36,6 +43,10 @@ Parameters:
     Description: Thumbnail width in pixels
     MinValue: 1
     MaxValue: 300
+  AllowedImageExtensions:
+    Type: String
+    Default: jpg,jpeg,png,gif
+    Description: Comma-delimited list of allowed image file extensions (lowercase)
 
 Conditions:
   ContactEmailSet: !Not [!Equals ["", !Ref ContactEmailAddress]]
@@ -120,12 +131,14 @@ Resources:
     Properties:
       CodeUri: dist/
       Handler: permission.getUploadDownloadPolicyHandler
+      ReservedConcurrentExecutions: 2
       Environment:
         Variables:
           UPLOAD_S3_BUCKET: !Ref UploadS3Bucket
           UPLOAD_LIMIT_IN_MB: !Ref UploadLimitInMb
           THUMBNAILS_S3_BUCKET: !Ref ThumbnailsS3Bucket
           CORS_ORIGIN: !GetAtt WebAssetsS3Bucket.WebsiteURL
+          ALLOWED_IMAGE_EXTENSIONS: !Ref AllowedImageExtensions
       Policies:
         - S3FullAccessPolicy:
             BucketName: !Ref UploadS3Bucket
@@ -135,7 +148,7 @@ Resources:
         ShowUploadForm:
           Type: Api
           Properties:
-            Path: /
+            Path: /sign/{extension}
             Method: get
             RestApiId: !Ref AjaxApiGateway
 
