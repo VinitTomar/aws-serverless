@@ -30,6 +30,12 @@ Parameters:
     Type: String
     Description: Email address for operational notifications
     Default: "libat95252@ukgent.com"
+  ThumbnailWidth:
+    Type: Number
+    Default: 30
+    Description: Thumbnail width in pixels
+    MinValue: 1
+    MaxValue: 300
 
 Conditions:
   ContactEmailSet: !Not [!Equals ["", !Ref ContactEmailAddress]]
@@ -130,9 +136,12 @@ Resources:
       Environment:
         Variables:
           OUTPUT_BUCKET: !Ref ThumbnailsS3Bucket
+          THUMB_WIDTH: !Ref ThumbnailWidth
       Policies:
         - S3FullAccessPolicy:
             BucketName: !Ref ThumbnailsS3Bucket
+      Layers:
+        - !GetAtt ImageMagick.Outputs.LayerVersion
       DeadLetterQueue:
         TargetArn: !Ref NotifyAdmins
         Type: SNS
@@ -188,6 +197,13 @@ Resources:
               - !Sub "${UploadS3Bucket.Arn}/*"
       Roles:
         - !Ref ImageConversionFunctionRole
+
+  ImageMagick:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:145266761615:applications/image-magick-lambda-layer
+        SemanticVersion: 1.0.0
 
   NotifyAdmins:
     Type: AWS::SNS::Topic

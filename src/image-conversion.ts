@@ -4,6 +4,7 @@ import { createReadStream, createWriteStream } from "fs";
 import { unlink } from "fs/promises";
 import { extname, join } from "path";
 import { tmpdir } from 'os';
+import { spawn, SpawnOptions } from "child_process";
 
 
 function extractS3Info(event: S3Event) {
@@ -65,9 +66,30 @@ async function removeFile(filePath: string) {
   }
 }
 
+function executeCmd(command: string, args: ReadonlyArray<string>, options: SpawnOptions = {}) {
+  return new Promise<void>((res, rej) => {
+    console.log('executing', command, args.join(' '));
+    const childProc = spawn(command, args, options);
+
+    childProc.stdout?.on('data', buffer => console.log(buffer.toString()));
+    childProc.stderr?.on('data', buffer => console.error(buffer.toString()));
+
+    childProc.on('exit', (code, signal) => {
+      console.log(`${command} completed with ${code}:${signal}`); if (code || signal) {
+        rej(`${command} failed with ${code || signal}`);
+      } else {
+        res();
+      }
+    });
+
+    childProc.on('error', rej);
+  });
+}
+
 export const generateThumbnailHandler = async (event: S3Event, context: Context) => {
   const supportedFormats = ['jpg', 'jpeg', 'png', 'gif'];
   const OUTPUT_BUCKET = process.env.OUTPUT_BUCKET;
+  const THUMB_WIDTH = process.env.THUMB_WIDTH;
 
   if (!OUTPUT_BUCKET) {
     throw new Error(`No S3 bucket ${OUTPUT_BUCKET}`);
@@ -80,8 +102,6 @@ export const generateThumbnailHandler = async (event: S3Event, context: Context)
   const fileExtensionWithNoDot = fileExtension.slice(1);
   const contentType = `image/${fileExtensionWithNoDot}`;
 
-
-
   console.log('converting', bucket, ':', key, 'using', tempFilePath);
 
   if (!supportedFormats.includes(fileExtensionWithNoDot)) {
@@ -89,6 +109,7 @@ export const generateThumbnailHandler = async (event: S3Event, context: Context)
   }
 
   await downloadFileFromS3(bucket, key, tempFilePath);
+  await executeCmd('/opt/bin/mogrify', ['-thumbnail', `${THUMB_WIDTH}x`, tempFilePath]);
   await uploadFileToS3(OUTPUT_BUCKET, key, tempFilePath, contentType);
   await removeFile(tempFilePath);
 }
