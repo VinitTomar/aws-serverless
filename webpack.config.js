@@ -6,7 +6,8 @@ module.exports = {
     app: './src/app.ts',
     auth: './src/auth.ts',
     'upload-file': './src/upload-file.ts',
-    'image-conversion': './src/image-conversion.ts'
+    'image-conversion': './src/image-conversion.ts',
+    permission: './src/permission.ts'
   },
   target: 'node',
   externals: {

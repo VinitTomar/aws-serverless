@@ -115,6 +115,30 @@ Resources:
             Path: /upload-file
             Method: get
 
+  GetUploadDownloadPolicyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/
+      Handler: permission.getUploadDownloadPolicyHandler
+      Environment:
+        Variables:
+          UPLOAD_S3_BUCKET: !Ref UploadS3Bucket
+          UPLOAD_LIMIT_IN_MB: !Ref UploadLimitInMb
+          THUMBNAILS_S3_BUCKET: !Ref ThumbnailsS3Bucket
+          CORS_ORIGIN: !GetAtt WebAssetsS3Bucket.WebsiteURL
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref UploadS3Bucket
+        - S3ReadPolicy:
+            BucketName: !Ref ThumbnailsS3Bucket
+      Events:
+        ShowUploadForm:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+            RestApiId: !Ref AjaxApiGateway
+
   ConfirmUploadFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -158,6 +182,13 @@ Resources:
         TargetArn: !Ref NotifyAdmins
         Type: SNS
 
+  AjaxApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: thumbnail
+      Name: ajax
+      Cors: !Sub "'${WebAssetsS3Bucket.WebsiteURL}'"
+
   RestApiGateway:
     Type: AWS::Serverless::Api
     Properties:
@@ -179,6 +210,13 @@ Resources:
       CodeUri: dist/
       Handler: auth.restApiAuthorizationHandler
 
+  WebAssetsS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      WebsiteConfiguration:
+        ErrorDocument: 404.html
+        IndexDocument: index.html
+
   UploadS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -186,6 +224,15 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - POST
+            AllowedOrigins:
+              - !GetAtt WebAssetsS3Bucket.WebsiteURL
+            MaxAge: 3600
 
   ThumbnailsS3Bucket:
     Type: AWS::S3::Bucket
@@ -194,6 +241,15 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+            AllowedOrigins:
+              - !GetAtt WebAssetsS3Bucket.WebsiteURL
+            MaxAge: 3600
 
   ConvertFunctionCanReadUploads:
     Type: AWS::IAM::Policy
@@ -228,6 +284,43 @@ Resources:
       Protocol: email
       TopicArn: !Ref NotifyAdmins
 
+  DeployToS3:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:us-east-1:375983427419:applications/deploy-to-s3
+        SemanticVersion: 1.0.0
+
+  # UPLOAD FRONTEND TO S3 START
+  SiteSource:
+    Type: AWS::Serverless::Function
+    Properties:
+      Layers:
+        - !GetAtt DeployToS3.Outputs.Arn
+      CodeUri: frontend/
+      AutoPublishAlias: production
+      Runtime: python3.7
+      Handler: deployer.resource_handler
+      Timeout: 600
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref WebAssetsS3Bucket
+
+  DeploymentResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt SiteSource.Arn
+      Version: !Ref "SiteSource.Version"
+      TargetBucket: !Ref WebAssetsS3Bucket
+      Substitutions:
+        FilePattern: "*.html"
+        Values:
+          API_URL: !Sub "https://${AjaxApiGateway}.execute-api.${AWS::Region}.amazonaws.com/thumbnail/"
+      Acl: "public-read"
+      CacheControlMaxAge: 600
+
+  # UPLOAD FRONTEND TO S3 END
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
@@ -244,3 +337,6 @@ Outputs:
   UploadBucket:
     Description: "S3 Bucket for user information"
     Value: !Ref UploadS3Bucket
+  WebUrl:
+    Description: "Public web URL"
+    Value: !GetAtt WebAssetsS3Bucket.WebsiteURL
