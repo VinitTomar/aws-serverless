@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  layer-example
+
+  Sample SAM Template for layer-example
+
+Globals:
+  Function:
+    Timeout: 3
+    Tracing: Active
+  Api:
+    TracingEnabled: True
+
+Resources:
+  ApiEndpointHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/app
+      Handler: index.lambdaHandler
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt MySqsQueue.QueueName
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref MySqsQueue
+      Runtime: nodejs16.x
+      Architectures:
+        - x86_64
+      Events:
+        GetTodos:
+          Type: Api
+          Properties:
+            Path: /event-source
+            Method: post
+
+  MySQSQueueFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/app
+      Handler: index.sqsEventHandler
+      Runtime: nodejs16.x
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt MySqsQueue.QueueName
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref MySqsQueue
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MySqsQueue.Arn
+            BatchSize: 10
+  
+  EmailSQSQueueFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/app
+      Handler: index.emailSqsEventHandler
+      Runtime: nodejs16.x
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt EmailSqsQueue.Arn
+            BatchSize: 10
+
+  SmsSQSQueueFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/app
+      Handler: index.smsSqsEventHandler
+      Runtime: nodejs16.x
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SmsSqsQueue.Arn
+            BatchSize: 10
+
+  MySNSFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dist/app
+      Handler: index.snsEventHandler
+      Runtime: nodejs16.x
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref MySNSTopic
+            SqsSubscription: true
+
+  MySqsQueue:
+    Type: AWS::SQS::Queue
+    Properties: 
+      RedrivePolicy: 
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 2
+
+  EmailSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties: 
+      RedrivePolicy: 
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 2
+
+  SmsSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties: 
+      RedrivePolicy: 
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 2
+  
+  DeadLetterQueue: 
+    Type: AWS::SQS::Queue
+
+  MySNSTopic:
+    Type: AWS::SNS::Topic
+  
+  EmailSmsSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Endpoint: !GetAtt EmailSqsQueue.Arn
+          Protocol: sqs
+        - Endpoint: !GetAtt SmsSqsQueue.Arn
+          Protocol: sqs
+
+  EmailSmsSQSPolicy: 
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      Queues: 
+        - !Ref EmailSqsQueue
+        - !Ref SmsSqsQueue
+      PolicyDocument: 
+        Statement: 
+          - 
+            Action: 
+              - "SQS:*" 
+            Effect: "Allow"
+            Resource: "*"
+            Principal:  
+              AWS: "*"        
+
+Outputs:
+  HelloWorldApi:
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/event-source/"
