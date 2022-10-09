@@ -141,6 +141,9 @@ Resources:
               - "SQS:*" 
             Effect: "Allow"
             Resource: "*"
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref EmailSmsSNSTopic
             Principal:  
               AWS: "*"        
 
