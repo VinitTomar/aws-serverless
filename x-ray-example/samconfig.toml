@@ -1,0 +1,11 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "x-ray-example"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1eh08zxkrnvml"
+s3_prefix = "x-ray-example"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []
